@@ -1,0 +1,24 @@
+{
+  "name": "adam-turner",
+  "version": "1.0.0",
+  "description": "Last Man Standing - Premier League Survivor Pool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:29682/git/turnenterprise23-ops/Adam-Turner"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.6.2",
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "uuid": "^13.0.0"
+  }
+}

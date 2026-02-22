@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Last Man Standing</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header" class="hidden">
+      <div class="header-inner">
+        <div class="logo">
+          <span class="logo-icon">&#9917;</span>
+          <h1>Last Man Standing</h1>
+        </div>
+        <nav id="nav-links"></nav>
+        <div class="header-right">
+          <span id="user-name"></span>
+          <button onclick="logout()" class="btn btn-sm btn-outline">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen">
+      <div class="auth-container">
+        <div class="auth-hero">
+          <span class="hero-icon">&#9917;</span>
+          <h1>Last Man Standing</h1>
+          <p class="subtitle">Premier League Survivor Pool</p>
+          <div class="prize-banner">
+            <div class="prize-item">
+              <span class="prize-label">Entry Fee</span>
+              <span class="prize-value">&pound;10</span>
+            </div>
+            <div class="prize-divider"></div>
+            <div class="prize-item">
+              <span class="prize-label">Winner Takes</span>
+              <span class="prize-value">&pound;1,200</span>
+            </div>
+            <div class="prize-divider"></div>
+            <div class="prize-item">
+              <span class="prize-label">Club Fund</span>
+              <span class="prize-value">&pound;800</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="tab active" onclick="showAuthTab('login')">Login</button>
+          <button class="tab" onclick="showAuthTab('register')">Register</button>
+        </div>
+
+        <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="login-email" required placeholder="your@email.com">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" required placeholder="Enter password">
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Login</button>
+          <div id="login-error" class="error-msg hidden"></div>
+        </form>
+
+        <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="reg-name" required placeholder="John Smith">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="reg-email" required placeholder="your@email.com">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="reg-password" required minlength="6" placeholder="Min 6 characters">
+          </div>
+          <button type="submit" class="btn btn-primary btn-full">Register</button>
+          <div id="register-error" class="error-msg hidden"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboard-screen" class="screen hidden">
+      <div class="container">
+        <!-- Active Gameweek Card -->
+        <div class="card" id="active-gw-card">
+          <div class="card-header">
+            <h2>Current Gameweek</h2>
+            <span id="gw-status" class="badge">Loading...</span>
+          </div>
+          <div id="active-gw-content">
+            <p class="loading">Loading...</p>
+          </div>
+        </div>
+
+        <!-- Pick Selection -->
+        <div class="card" id="pick-card">
+          <div class="card-header">
+            <h2>Make Your Pick</h2>
+          </div>
+          <div id="pick-content">
+            <p class="loading">Loading...</p>
+          </div>
+        </div>
+
+        <!-- My Picks History -->
+        <div class="card">
+          <div class="card-header">
+            <h2>My Pick History</h2>
+          </div>
+          <div id="my-picks-content">
+            <p class="loading">Loading...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leaderboard Screen -->
+    <div id="leaderboard-screen" class="screen hidden">
+      <div class="container">
+        <div class="card">
+          <div class="card-header">
+            <h2>Leaderboard</h2>
+          </div>
+          <div id="leaderboard-content">
+            <p class="loading">Loading...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Screen -->
+    <div id="admin-screen" class="screen hidden">
+      <div class="container">
+        <!-- Admin Tabs -->
+        <div class="admin-tabs" id="admin-tabs">
+          <button class="tab active" onclick="showAdminTab('gameweeks')">Gameweeks</button>
+          <button class="tab" onclick="showAdminTab('users')">Users</button>
+          <button class="tab" onclick="showAdminTab('picks')">Picks</button>
+          <button class="tab" onclick="showAdminTab('results')">Results</button>
+        </div>
+
+        <!-- Gameweeks Management -->
+        <div id="admin-gameweeks" class="admin-panel">
+          <div class="card">
+            <div class="card-header">
+              <h2>Add Gameweek</h2>
+            </div>
+            <form onsubmit="addGameweek(event)" class="form-inline">
+              <div class="form-group">
+                <label>Week Number</label>
+                <input type="number" id="gw-number" required min="1">
+              </div>
+              <div class="form-group">
+                <label>Label</label>
+                <input type="text" id="gw-label" required placeholder="e.g. Gameweek 1">
+              </div>
+              <div class="form-group">
+                <label>First Kickoff (date &amp; time)</label>
+                <input type="datetime-local" id="gw-kickoff" required>
+              </div>
+              <button type="submit" class="btn btn-primary">Add Gameweek</button>
+            </form>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2>All Gameweeks</h2>
+            </div>
+            <div id="admin-gw-list">
+              <p class="loading">Loading...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users Management -->
+        <div id="admin-users" class="admin-panel hidden">
+          <div class="card">
+            <div class="card-header">
+              <h2>Registered Users</h2>
+            </div>
+            <div id="admin-users-list">
+              <p class="loading">Loading...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Picks View -->
+        <div id="admin-picks" class="admin-panel hidden">
+          <div class="card">
+            <div class="card-header">
+              <h2>View Picks by Gameweek</h2>
+            </div>
+            <div class="form-group">
+              <label>Select Gameweek</label>
+              <select id="admin-pick-gw" onchange="loadAdminPicks()">
+                <option value="">-- Select --</option>
+              </select>
+            </div>
+            <div id="admin-picks-list"></div>
+          </div>
+        </div>
+
+        <!-- Results Entry -->
+        <div id="admin-results" class="admin-panel hidden">
+          <div class="card">
+            <div class="card-header">
+              <h2>Enter Results</h2>
+            </div>
+            <div class="form-group">
+              <label>Select Gameweek</label>
+              <select id="admin-result-gw">
+                <option value="">-- Select --</option>
+              </select>
+            </div>
+            <p class="help-text">Select all teams that WON this gameweek:</p>
+            <div id="admin-results-teams" class="team-grid"></div>
+            <button onclick="submitResults()" class="btn btn-primary" style="margin-top:1rem;">Submit Results &amp; Eliminate Losers</button>
+            <div id="results-feedback" class="hidden"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
