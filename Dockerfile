@@ -2,9 +2,15 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install build tools needed for better-sqlite3 native addon
+RUN apk add --no-cache python3 make g++
+
 # Install dependencies first for better caching
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
+
+# Remove build tools after install to keep image small
+RUN apk del python3 make g++
 
 # Copy application code
 COPY server.js ./
