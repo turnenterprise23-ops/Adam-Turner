@@ -7,9 +7,11 @@ const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 // --- Database Setup ---
-const db = new Database(path.join(__dirname, 'lastmanstanding.db'));
+const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, 'lastmanstanding.db');
+const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -75,9 +77,14 @@ insertSetting.run('deadline_minutes_before', '90');
 const adminExists = db.prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1').get();
 if (adminExists.count === 0) {
   const adminId = uuidv4();
-  const hashedPw = bcrypt.hashSync('admin123', 10);
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@lastmanstanding.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+  const hashedPw = bcrypt.hashSync(adminPassword, 10);
   db.prepare('INSERT INTO users (id, name, email, password, is_admin, paid) VALUES (?, ?, ?, ?, 1, 1)')
-    .run(adminId, 'Admin', 'admin@lastmanstanding.com', hashedPw);
+    .run(adminId, 'Admin', adminEmail, hashedPw);
+  if (!IS_PROD) {
+    console.log(`Default admin created: ${adminEmail} / ${adminPassword}`);
+  }
 }
 
 // Premier League teams
@@ -93,12 +100,36 @@ const TEAMS = [
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
+const sessionSecret = process.env.SESSION_SECRET || 'lms-secret-change-in-production-' + uuidv4();
+if (IS_PROD && !process.env.SESSION_SECRET) {
+  console.warn('WARNING: SESSION_SECRET not set. Sessions will not persist across restarts.');
+}
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'lms-secret-change-in-production-' + uuidv4(),
+  secret: sessionSecret,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 } // 7 days
+  cookie: {
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    secure: IS_PROD,
+    httpOnly: true,
+    sameSite: 'lax'
+  },
+  proxy: IS_PROD
 }));
+
+if (IS_PROD) {
+  app.set('trust proxy', 1);
+}
 
 function requireAuth(req, res, next) {
   if (!req.session.userId) {
@@ -448,12 +479,35 @@ app.post('/api/admin/settings', requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  try {
+    db.prepare('SELECT 1').get();
+    res.json({ status: 'ok', uptime: process.uptime() });
+  } catch (e) {
+    res.status(503).json({ status: 'error', message: 'Database unavailable' });
+  }
+});
+
 // SPA fallback
 app.get('/{*path}', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Last Man Standing server running on http://localhost:${PORT}`);
-  console.log(`Default admin: admin@lastmanstanding.com / admin123`);
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  db.close();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  db.close();
+  process.exit(0);
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Last Man Standing server running on port ${PORT}`);
+  console.log(`Environment: ${IS_PROD ? 'production' : 'development'}`);
 });
