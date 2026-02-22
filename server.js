@@ -3,6 +3,7 @@ const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
 const path = require('path');
+const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
@@ -11,6 +12,8 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 // --- Database Setup ---
 const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, 'lastmanstanding.db');
+// Ensure the directory for the database file exists
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
