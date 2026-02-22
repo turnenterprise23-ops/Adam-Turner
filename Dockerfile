@@ -9,8 +9,8 @@ RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-# Remove build tools after install to keep image small
-RUN apk del python3 make g++
+# Remove build tools but keep libstdc++ (needed by better-sqlite3 at runtime)
+RUN apk del python3 make g++ && apk add --no-cache libstdc++
 
 # Copy application code
 COPY server.js ./
