@@ -1,0 +1,17 @@
+{
+  "name": "amazon-niche-finder",
+  "version": "1.0.0",
+  "description": "Amazon Private Label Niche Finder - Discover profitable product niches",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "better-sqlite3": "^12.6.2",
+    "node-fetch": "^3.3.2",
+    "uuid": "^13.0.0"
+  }
+}

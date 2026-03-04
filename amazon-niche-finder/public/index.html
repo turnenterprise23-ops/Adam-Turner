@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon Niche Finder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1>Amazon Niche Finder</h1>
+        <span class="subtitle">Private Label Opportunity Scanner</span>
+      </div>
+      <nav class="header-nav">
+        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button class="nav-btn" data-view="search">Search</button>
+        <button class="nav-btn" data-view="niches">Saved Niches</button>
+        <button class="nav-btn" data-view="criteria">Criteria</button>
+      </nav>
+    </header>
+
+    <!-- Dashboard View -->
+    <section id="view-dashboard" class="view active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-searches">0</div>
+          <div class="stat-label">Total Searches</div>
+        </div>
+        <div class="stat-card highlight">
+          <div class="stat-value" id="stat-passing-niches">0</div>
+          <div class="stat-label">Passing Niches</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-total-niches">0</div>
+          <div class="stat-label">Analysed Niches</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-top-score">-</div>
+          <div class="stat-label">Top Niche Score</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Recent Searches</h2>
+        <div id="recent-searches" class="table-wrap">
+          <p class="empty-state">No searches yet. Go to Search to get started.</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Top Passing Niches</h2>
+        <div id="top-niches" class="table-wrap">
+          <p class="empty-state">No passing niches found yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search View -->
+    <section id="view-search" class="view">
+      <div class="search-section">
+        <h2>Search for a Niche</h2>
+        <div class="search-bar">
+          <input type="text" id="search-keyword" placeholder="Enter a product keyword (e.g. silicone spatula, yoga mat)">
+          <button id="btn-search" class="btn btn-primary">Analyse Niche</button>
+        </div>
+      </div>
+
+      <div class="search-section">
+        <h2>Bulk Search</h2>
+        <textarea id="bulk-keywords" rows="5" placeholder="Enter multiple keywords, one per line..."></textarea>
+        <button id="btn-bulk-search" class="btn btn-secondary">Analyse All Keywords</button>
+      </div>
+
+      <div id="search-status" class="search-status" style="display:none;">
+        <div class="spinner"></div>
+        <span id="search-status-text">Analysing niche...</span>
+      </div>
+
+      <div id="search-result" style="display:none;">
+        <h2>Analysis Result</h2>
+        <div id="result-content"></div>
+      </div>
+    </section>
+
+    <!-- Saved Niches View -->
+    <section id="view-niches" class="view">
+      <div class="section-header">
+        <h2>Saved Niches</h2>
+        <div class="filter-bar">
+          <label>
+            <input type="checkbox" id="filter-passing" checked> Only passing
+          </label>
+          <select id="sort-niches">
+            <option value="niche_score">Sort by Score</option>
+            <option value="search_volume">Sort by Search Volume</option>
+            <option value="avg_monthly_revenue">Sort by Revenue</option>
+            <option value="estimated_margin">Sort by Margin</option>
+          </select>
+        </div>
+      </div>
+      <div id="niches-list" class="table-wrap">
+        <p class="empty-state">No niches saved yet.</p>
+      </div>
+    </section>
+
+    <!-- Criteria View -->
+    <section id="view-criteria" class="view">
+      <h2>Niche Criteria</h2>
+      <p class="criteria-desc">Set the criteria that a niche must meet to be considered a viable opportunity.</p>
+      <form id="criteria-form" class="criteria-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Min. Monthly Search Volume</label>
+            <input type="number" name="min_search_volume" id="c-min-sv" min="0">
+            <span class="hint">Leading keyword must have this many searches/month</span>
+          </div>
+          <div class="form-group">
+            <label>Max. Competitors</label>
+            <input type="number" name="max_competitors" id="c-max-comp" min="1">
+            <span class="hint">Maximum number of competing listings in the niche</span>
+          </div>
+          <div class="form-group">
+            <label>Max. Reviews per Listing</label>
+            <input type="number" name="max_reviews" id="c-max-rev" min="0">
+            <span class="hint">No competitor should have more reviews than this</span>
+          </div>
+          <div class="form-group">
+            <label>Min. Price (£)</label>
+            <input type="number" name="min_price" id="c-min-price" step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label>Max. Price (£)</label>
+            <input type="number" name="max_price" id="c-max-price" step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label>Min. Monthly Revenue (£)</label>
+            <input type="number" name="min_monthly_revenue" id="c-min-rev" step="0.01" min="0">
+            <span class="hint">Average monthly revenue per product</span>
+          </div>
+          <div class="form-group">
+            <label>Target Margin (%)</label>
+            <input type="number" name="target_margin" id="c-margin" step="0.1" min="0" max="100">
+          </div>
+          <div class="form-group">
+            <label>Min. Months in Season</label>
+            <input type="number" name="min_season_months" id="c-season" min="1" max="12">
+            <span class="hint">Product must be in-season at least this many months/year</span>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Criteria</button>
+        <span id="criteria-saved" class="save-indicator" style="display:none;">Saved!</span>
+      </form>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
