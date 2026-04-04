@@ -11,19 +11,6 @@ export class RainforestProvider {
     this.baseUrl = 'https://api.rainforestapi.com/request';
   }
 
-  getDomain(marketplace) {
-    const domains = {
-      uk: 'amazon.co.uk',
-      us: 'amazon.com',
-      de: 'amazon.de',
-      fr: 'amazon.fr',
-      it: 'amazon.it',
-      es: 'amazon.es',
-      ca: 'amazon.ca',
-    };
-    return domains[marketplace] || 'amazon.co.uk';
-  }
-
   getAmazonDomain(marketplace) {
     const domains = {
       uk: 'amazon.co.uk',
@@ -56,18 +43,35 @@ export class RainforestProvider {
     return response.json();
   }
 
-  async searchNiche(keyword, marketplace = 'uk') {
+  async searchNiche(keyword, marketplace = 'uk', maxPages = 10) {
     const amazonDomain = this.getAmazonDomain(marketplace);
 
-    // 1. Search for products with this keyword
-    const searchResults = await this.fetchApi({
-      type: 'search',
-      amazon_domain: amazonDomain,
-      search_term: keyword,
-      sort_by: 'relevance',
-    });
+    // 1. Fetch up to maxPages of search results (1 credit per page)
+    let allProducts = [];
+    let totalResults = 0;
 
-    // 2. Get search volume / keyword data
+    for (let page = 1; page <= maxPages; page++) {
+      const searchResults = await this.fetchApi({
+        type: 'search',
+        amazon_domain: amazonDomain,
+        search_term: keyword,
+        sort_by: 'relevance',
+        page: String(page),
+      });
+
+      const pageProducts = searchResults.search_results || [];
+      totalResults = searchResults.pagination?.total_results || totalResults;
+
+      if (pageProducts.length === 0) break; // No more results
+
+      allProducts.push(...pageProducts);
+
+      // Stop early if we've fetched all available results
+      const totalPages = searchResults.pagination?.total_pages || maxPages;
+      if (page >= totalPages) break;
+    }
+
+    // 2. Get search volume / keyword data (1 credit)
     let searchVolume = null;
     try {
       searchVolume = await this.fetchApi({
@@ -79,8 +83,8 @@ export class RainforestProvider {
       // search_volume endpoint may not be available on all plans
     }
 
-    // Extract product list from search results
-    const products = (searchResults.search_results || []).slice(0, 50).map(p => ({
+    // Extract product data
+    const products = allProducts.map(p => ({
       asin: p.asin,
       title: p.title,
       price: p.price?.value || null,
@@ -95,13 +99,21 @@ export class RainforestProvider {
       isFba: p.fulfillment?.is_fulfilled_by_amazon || false,
     }));
 
+    // Deduplicate by ASIN
+    const seen = new Set();
+    const uniqueProducts = products.filter(p => {
+      if (!p.asin || seen.has(p.asin)) return false;
+      seen.add(p.asin);
+      return true;
+    });
+
     // Extract monthly search volume
     const monthlySearchVolume = searchVolume?.search_volume?.exact?.[0]?.volume
       || searchVolume?.search_volume
-      || this.estimateSearchVolume(products);
+      || this.estimateSearchVolume(uniqueProducts);
 
     // Estimate monthly sales per product using BSR if available
-    const productsWithSales = products.map(p => ({
+    const productsWithSales = uniqueProducts.map(p => ({
       ...p,
       estimatedMonthlySales: this.estimateMonthlySales(p.salesRank, p.category),
       estimatedMonthlyRevenue: p.price
@@ -114,7 +126,8 @@ export class RainforestProvider {
       marketplace,
       monthlySearchVolume,
       products: productsWithSales,
-      totalResults: searchResults.pagination?.total_results || products.length,
+      totalResults: totalResults || uniqueProducts.length,
+      pagesScanned: Math.min(maxPages, Math.ceil(allProducts.length / 15)),
       searchTimestamp: new Date().toISOString(),
     };
   }
