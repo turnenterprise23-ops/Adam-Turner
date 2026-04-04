@@ -226,6 +226,60 @@ app.post('/api/search', async (req, res) => {
   }
 });
 
+// Search by category
+app.post('/api/search/category', async (req, res) => {
+  const { categoryId, categoryName } = req.body;
+  if (!categoryId) {
+    return res.status(400).json({ error: 'Category ID is required' });
+  }
+
+  const label = categoryName || `Category ${categoryId}`;
+  const searchId = uuidv4();
+  const marketplace = process.env.MARKETPLACE || 'uk';
+
+  db.prepare(`
+    INSERT INTO searches (id, keyword, marketplace, status)
+    VALUES (?, ?, ?, 'processing')
+  `).run(searchId, label, marketplace);
+
+  res.json({ searchId, status: 'processing' });
+
+  try {
+    const provider = getProvider();
+    const rawData = await provider.searchCategory(categoryId, label, marketplace);
+    const criteria = getCriteria();
+    const analysis = analyzer.analyze(rawData, criteria);
+
+    const nicheId = uuidv4();
+    db.prepare(`
+      INSERT INTO saved_niches (
+        id, search_id, keyword, search_volume, competitor_count,
+        avg_price, avg_reviews, max_reviews, avg_monthly_revenue,
+        estimated_margin, seasonality_months, niche_score, passes_criteria, raw_data
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      nicheId, searchId, label,
+      analysis.searchVolume, analysis.competitorCount,
+      analysis.avgPrice, analysis.avgReviews, analysis.maxReviews,
+      analysis.avgMonthlyRevenue, analysis.estimatedMargin,
+      analysis.seasonalityMonths, analysis.nicheScore,
+      analysis.passesCriteria ? 1 : 0,
+      JSON.stringify(rawData)
+    );
+
+    db.prepare(`
+      UPDATE searches SET status = 'completed', completed_at = CURRENT_TIMESTAMP,
+      results_json = ? WHERE id = ?
+    `).run(JSON.stringify(analysis), searchId);
+
+  } catch (err) {
+    console.error('Category search failed:', err.message);
+    db.prepare(`
+      UPDATE searches SET status = 'failed', results_json = ? WHERE id = ?
+    `).run(JSON.stringify({ error: err.message }), searchId);
+  }
+});
+
 // Bulk search - multiple keywords
 app.post('/api/search/bulk', async (req, res) => {
   const { keywords } = req.body;

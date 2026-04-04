@@ -132,6 +132,79 @@ export class RainforestProvider {
   }
 
   /**
+   * Search by Amazon category/browse node ID.
+   * Fetches bestsellers within a category to analyse the niche.
+   */
+  async searchCategory(categoryId, categoryName, marketplace = 'uk', maxPages = 10) {
+    const amazonDomain = this.getAmazonDomain(marketplace);
+
+    let allProducts = [];
+    let totalResults = 0;
+
+    for (let page = 1; page <= maxPages; page++) {
+      const searchResults = await this.fetchApi({
+        type: 'category',
+        amazon_domain: amazonDomain,
+        category_id: categoryId,
+        page: String(page),
+      });
+
+      const pageProducts = searchResults.category_results || [];
+      totalResults = searchResults.pagination?.total_results || totalResults;
+
+      if (pageProducts.length === 0) break;
+
+      allProducts.push(...pageProducts);
+
+      const totalPages = searchResults.pagination?.total_pages || maxPages;
+      if (page >= totalPages) break;
+    }
+
+    const products = allProducts.map(p => ({
+      asin: p.asin,
+      title: p.title,
+      price: p.price?.value || null,
+      currency: p.price?.currency || 'GBP',
+      rating: p.rating || null,
+      reviewCount: p.ratings_total || 0,
+      position: p.position,
+      image: p.image,
+      salesRank: p.bestsellers_rank?.[0]?.rank || null,
+      category: p.bestsellers_rank?.[0]?.category || categoryName,
+      isPrime: p.is_prime || false,
+      isFba: p.fulfillment?.is_fulfilled_by_amazon || false,
+    }));
+
+    const seen = new Set();
+    const uniqueProducts = products.filter(p => {
+      if (!p.asin || seen.has(p.asin)) return false;
+      seen.add(p.asin);
+      return true;
+    });
+
+    const monthlySearchVolume = this.estimateSearchVolume(uniqueProducts);
+
+    const productsWithSales = uniqueProducts.map(p => ({
+      ...p,
+      estimatedMonthlySales: this.estimateMonthlySales(p.salesRank, p.category),
+      estimatedMonthlyRevenue: p.price
+        ? this.estimateMonthlySales(p.salesRank, p.category) * p.price
+        : null,
+    }));
+
+    return {
+      keyword: categoryName,
+      categoryId,
+      marketplace,
+      monthlySearchVolume,
+      products: productsWithSales,
+      totalResults: totalResults || uniqueProducts.length,
+      pagesScanned: Math.min(maxPages, Math.ceil(allProducts.length / 15)),
+      searchTimestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
    * Rough search volume estimate based on number of results and product metrics.
    * Used as fallback when the search_volume endpoint is unavailable.
    */

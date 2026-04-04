@@ -143,6 +143,43 @@ async function runSearch(keyword) {
   }
 }
 
+// --- Category Search ---
+document.getElementById('category-select').addEventListener('change', (e) => {
+  const wrap = document.getElementById('custom-category-wrap');
+  wrap.style.display = e.target.value === 'custom' ? 'block' : 'none';
+});
+
+document.getElementById('btn-category-search').addEventListener('click', async () => {
+  const select = document.getElementById('category-select');
+  let categoryId, categoryName;
+
+  if (select.value === 'custom') {
+    categoryId = document.getElementById('custom-category-id').value.trim();
+    categoryName = document.getElementById('custom-category-name').value.trim() || `Category ${categoryId}`;
+  } else if (select.value) {
+    categoryId = select.value;
+    categoryName = select.options[select.selectedIndex].text;
+  }
+
+  if (!categoryId) return;
+
+  showSearchStatus(`Analysing category: ${categoryName}...`);
+  hideSearchResult();
+
+  try {
+    const res = await fetch(`${API}/api/search/category`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId, categoryName }),
+    });
+    const data = await res.json();
+    pollForResult(data.searchId);
+  } catch (err) {
+    hideSearchStatus();
+    alert('Category search failed: ' + err.message);
+  }
+});
+
 async function runBulkSearch(keywords) {
   showSearchStatus(`Analysing ${keywords.length} keywords...`);
   hideSearchResult();
