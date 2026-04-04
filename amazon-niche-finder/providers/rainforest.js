@@ -55,7 +55,6 @@ export class RainforestProvider {
         type: 'search',
         amazon_domain: amazonDomain,
         search_term: keyword,
-        sort_by: 'relevance',
         page: String(page),
       });
 
