@@ -62,6 +62,14 @@ db.exec(`
   );
 
   INSERT OR IGNORE INTO criteria (id) VALUES (1);
+
+  CREATE TABLE IF NOT EXISTS api_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    provider TEXT DEFAULT 'rainforest',
+    api_key TEXT DEFAULT ''
+  );
+
+  INSERT OR IGNORE INTO api_settings (id) VALUES (1);
 `);
 
 // --- Middleware ---
@@ -69,12 +77,19 @@ app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
 
 // --- API Provider ---
+function getApiSettings() {
+  return db.prepare('SELECT * FROM api_settings WHERE id = 1').get();
+}
+
 function getProvider() {
-  const provider = process.env.API_PROVIDER || 'rainforest';
+  const settings = getApiSettings();
+  const provider = settings?.provider || process.env.API_PROVIDER || 'rainforest';
+  const apiKey = settings?.api_key || '';
+
   if (provider === 'keepa') {
-    return new KeepaProvider(process.env.KEEPA_API_KEY);
+    return new KeepaProvider(apiKey || process.env.KEEPA_API_KEY);
   }
-  return new RainforestProvider(process.env.RAINFOREST_API_KEY);
+  return new RainforestProvider(apiKey || process.env.RAINFOREST_API_KEY);
 }
 
 // --- Analyzer ---
@@ -85,6 +100,43 @@ function getCriteria() {
 const analyzer = new NicheAnalyzer();
 
 // --- API Routes ---
+
+// Get API settings (key is masked)
+app.get('/api/settings', (req, res) => {
+  const settings = getApiSettings();
+  res.json({
+    provider: settings?.provider || 'rainforest',
+    hasKey: !!(settings?.api_key),
+    maskedKey: settings?.api_key
+      ? settings.api_key.slice(0, 4) + '****' + settings.api_key.slice(-4)
+      : '',
+  });
+});
+
+// Update API settings
+app.put('/api/settings', (req, res) => {
+  const { provider, api_key } = req.body;
+
+  if (provider && !['rainforest', 'keepa'].includes(provider)) {
+    return res.status(400).json({ error: 'Provider must be "rainforest" or "keepa"' });
+  }
+
+  db.prepare(`
+    UPDATE api_settings SET
+      provider = COALESCE(?, provider),
+      api_key = COALESCE(?, api_key)
+    WHERE id = 1
+  `).run(provider || null, api_key || null);
+
+  const updated = getApiSettings();
+  res.json({
+    provider: updated.provider,
+    hasKey: !!updated.api_key,
+    maskedKey: updated.api_key
+      ? updated.api_key.slice(0, 4) + '****' + updated.api_key.slice(-4)
+      : '',
+  });
+});
 
 // Get current criteria
 app.get('/api/criteria', (req, res) => {

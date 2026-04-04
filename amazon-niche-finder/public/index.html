@@ -108,6 +108,34 @@
 
     <!-- Criteria View -->
     <section id="view-criteria" class="view">
+      <div class="section" style="margin-top:0;">
+        <h2>API Settings</h2>
+        <div class="criteria-form" style="margin-bottom:24px;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>API Provider</label>
+              <select id="api-provider" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.9rem;">
+                <option value="rainforest">Rainforest API</option>
+                <option value="keepa">Keepa API</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>API Key</label>
+              <div style="display:flex;gap:8px;">
+                <input type="password" id="api-key-input" placeholder="Enter your API key" style="flex:1;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.9rem;">
+                <button type="button" id="btn-toggle-key" class="btn btn-secondary btn-sm" style="white-space:nowrap;">Show</button>
+              </div>
+              <span class="hint">Your API key is stored securely in the database</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:12px;">
+            <button type="button" id="btn-save-api" class="btn btn-primary">Save API Settings</button>
+            <span id="api-saved" class="save-indicator" style="display:none;">Saved!</span>
+            <span id="api-status" style="margin-left:auto;font-size:0.85rem;"></span>
+          </div>
+        </div>
+      </div>
+
       <h2>Niche Criteria</h2>
       <p class="criteria-desc">Set the criteria that a niche must meet to be considered a viable opportunity.</p>
       <form id="criteria-form" class="criteria-form">

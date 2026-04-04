@@ -427,10 +427,64 @@ async function deleteNiche(id) {
 // Make deleteNiche available globally for onclick
 window.deleteNiche = deleteNiche;
 
+// --- API Settings ---
+async function loadApiSettings() {
+  try {
+    const settings = await fetch(`${API}/api/settings`).then(r => r.json());
+    document.getElementById('api-provider').value = settings.provider;
+    document.getElementById('api-key-input').value = '';
+    document.getElementById('api-key-input').placeholder = settings.hasKey
+      ? `Current: ${settings.maskedKey}`
+      : 'Enter your API key';
+    document.getElementById('api-status').innerHTML = settings.hasKey
+      ? '<span style="color:var(--success)">API key configured</span>'
+      : '<span style="color:var(--danger)">No API key set</span>';
+  } catch (err) {
+    console.error('Failed to load API settings:', err);
+  }
+}
+
+document.getElementById('btn-toggle-key').addEventListener('click', () => {
+  const input = document.getElementById('api-key-input');
+  const btn = document.getElementById('btn-toggle-key');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = 'Hide';
+  } else {
+    input.type = 'password';
+    btn.textContent = 'Show';
+  }
+});
+
+document.getElementById('btn-save-api').addEventListener('click', async () => {
+  const provider = document.getElementById('api-provider').value;
+  const apiKey = document.getElementById('api-key-input').value.trim();
+
+  const data = { provider };
+  if (apiKey) data.api_key = apiKey;
+
+  try {
+    await fetch(`${API}/api/settings`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const indicator = document.getElementById('api-saved');
+    indicator.style.display = 'inline';
+    setTimeout(() => { indicator.style.display = 'none'; }, 2000);
+    loadApiSettings();
+  } catch (err) {
+    alert('Failed to save API settings: ' + err.message);
+  }
+});
+
 // --- Criteria ---
 async function loadCriteria() {
   try {
-    const criteria = await fetch(`${API}/api/criteria`).then(r => r.json());
+    const [criteria] = await Promise.all([
+      fetch(`${API}/api/criteria`).then(r => r.json()),
+      loadApiSettings(),
+    ]);
     document.getElementById('c-min-sv').value = criteria.min_search_volume;
     document.getElementById('c-max-comp').value = criteria.max_competitors;
     document.getElementById('c-max-rev').value = criteria.max_reviews;
