@@ -8,25 +8,15 @@ RUN npm ci --omit=dev
 
 FROM node:20-alpine
 
-RUN apk add --no-cache libstdc++
-
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN apk add --no-cache libstdc++ curl
 
 WORKDIR /app
 COPY --from=builder /app/node_modules ./node_modules
 COPY . .
 
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app
-
-USER appuser
+RUN mkdir -p /app/data && chmod -R 777 /app/data
 
 ENV NODE_ENV=production
 ENV DATABASE_PATH=/app/data/niches.db
-ENV PORT=3001
-
-EXPOSE 3001
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-  CMD wget -qO- http://localhost:3001/api/health || exit 1
 
 CMD ["node", "server.js"]
